@@ -5,14 +5,13 @@ import PostDetail from './PostDetail'
 import PropTypes from "prop-types";
 import * as a from './../actions';
 import EditPostForm from './EditPostForm';
+import { connect } from 'react-redux';
 
 class PostControl extends React.Component {
   
   constructor(props) {
     super(props);
     this.state = {
-      formVisibleOnPage: false,
-      mainPostList: [],
       selectedPost: null,
       editing: false
     };
@@ -21,32 +20,34 @@ class PostControl extends React.Component {
   handleClick = () => {
     if (this.state.selectedPost != null) {
       this.setState({
-        formVisibleOnPage: false,
         selectedPost: null,
         editing: false
       });
     } else {
-      this.setState(prevState => ({
-        formVisibleOnPage: !prevState.formVisibleOnPage,
-      }));
+      const { dispatch } = this.props;
+      const action = a.toggleForm();
+      dispatch(action);
     }
-  }
+  };
 
   handleAddingNewPostToList = (newPost) => {
-    const newMainPostList = this.state.mainPostList.concat(newPost);
-    this.setState({mainPostList: newMainPostList,
-                  formVisibleOnPage: false });
-  }
+    const { dispatch } = this.props;
+    const action = a.addPost(newPost);
+    dispatch(action);
+    const action2 = a.toggleForm();
+    dispatch(action2);
+    }
 
   handleChangingSelectedPost = (id) => {
-    const selectedPost = this.state.mainPostList.filter(post => post.id === id)[0];
+    const selectedPost = this.props.mainPostList[id];
     this.setState({selectedPost: selectedPost});
   }
 
   handleDeletingPost = (id) => {
-    const newMainPostList = this.state.mainPostList.filter(post => post.id !== id);
+    const { dispatch } = this.props;
+    const action = a.deletePost(id);
+    dispatch(action);
     this.setState({
-      mainPostList: newMainPostList,
       selectedPost: null
     });
   }
@@ -57,38 +58,35 @@ class PostControl extends React.Component {
   }
 
   handleEditingPostInList = (postToEdit) => {
-    const editedMainPostList = this.state.mainPostList
-      .filter(post => post.id !== this.state.selectedPost.id)
-      .concat(postToEdit);
+    const { dispatch } = this.props;
+    const action = a.addPost(postToEdit);
+    dispatch(action);
     this.setState({
-        mainPostList: editedMainPostList,
         editing: false,
         selectedPost: null
       });
-  }
+  };
 
 
   render(){
     let currentlyVisibleState = null;
     let buttonText = null;
     if (this.state.editing ) {      
-      currentlyVisibleState = <EditPostForm 
-      
+      currentlyVisibleState = (<EditPostForm 
       post = {this.state.selectedPost} 
-      onEditPost = {this.handleEditingPostInList}/>
+      onEditPost = {this.handleEditingPostInList}/>);
       buttonText = "Return to Post List";
     } else if (this.state.selectedPost != null) {
-      currentlyVisibleState = <PostDetail 
+      currentlyVisibleState = (<PostDetail 
       post = {this.state.selectedPost} 
-      onClickingDelete = {this.handleDeletingTicket}
-      onClickingEdit = {this.handleEditClick}/>
+      onClickingDelete = {this.handleDeletingPost}
+      onClickingEdit = {this.handleEditClick}/>);
       buttonText = "Return to Post List";
-
-          } else if (this.state.formVisibleOnPage) {
-      currentlyVisibleState = <NewPostForm onNewPostCreation={this.handleAddingNewPostToList} />
+    } else if (this.props.formVisibleOnPage) {
+      currentlyVisibleState = (<NewPostForm onNewPostCreation={this.handleAddingNewPostToList} />);
       buttonText = "Return to Post List";
     } else {
-      currentlyVisibleState = <PostList postList={this.state.mainPostList} onPostSelection={this.handleChangingSelectedPost} />;
+      currentlyVisibleState = (<PostList postList={this.props.mainPostList} onPostSelection={this.handleChangingSelectedPost} />);
       buttonText = "Add Post";
     }
     return (
@@ -100,5 +98,19 @@ class PostControl extends React.Component {
   }
 
 }
+
+PostControl.propTypes={
+  mainPostList: PropTypes.object,
+  formVisibleOnPage: PropTypes.bool
+};
+
+const mapStateToProps = (state) => {
+  return {
+    mainPostList: state.mainPostList,
+    formVisibleOnPage: state.formVisibleOnPage,
+  };
+};
+
+PostControl = connect(mapStateToProps)(PostControl);
 
 export default PostControl;
